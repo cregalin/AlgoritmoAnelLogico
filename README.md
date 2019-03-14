@@ -10,11 +10,12 @@ A lógica é a seguinte:
 3. Quando voltar a P, a mensaem m muda para coordenador e volta a circular no anel
 4. Cada um assume que o coordenador é o maior PID da lista circulante, e a lista contém os PIDs ativos.
 
-### Espefificação trabalho - Sistemas Distribuídos
+### Especificação trabalho - Sistemas Distribuídos
 
 * a cada 30 segundos um novo processo deve ser criado
 * a cada 25 segundos um processo fazer uma requisição para o coordenador
 * a cada 100 segundos o coordenador fica inativo
-* a cada 80 segundos um processo da lista de processos fica inativo * dois processos não podem ter o mesmo ID
+* a cada 80 segundos um processo da lista de processos fica inativo 
+* dois processos não podem ter o mesmo ID
 * dois processos de eleição não podem acontecer simultaneamente
 
