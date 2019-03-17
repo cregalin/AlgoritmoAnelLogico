@@ -26,12 +26,12 @@ namespace Rules
         public void CreateProcedures()
         {
             Thread creator = CreateProceduresThread();
-            creator.Start();
+             creator.Start();
         }
 
         private Thread CreateProceduresThread()
         {
-            return new Thread(new ThreadStart(CreateProcedureStart));
+             return new Thread(new ThreadStart(CreateProcedureStart));
         }
 
         private void CreateProcedureStart()
@@ -40,7 +40,10 @@ namespace Rules
             {
                 lock (SynchronizedLock)
                 {
-                    IProcedure newProcedure = CreateProcedure();
+                   IProcedure newProcedure = CreateProcedure();
+
+                    ActiveProcedures.Add(newProcedure);
+
                     Console.WriteLine(string.Format("Processo {0} criado.", newProcedure.Identifier));
                 }
 
@@ -57,20 +60,31 @@ namespace Rules
 
         private IProcedure CreateProcedure()
         {
-            long identifier = GetNewIdentifier(ActiveProcedures);
+            long identifier = GetNewIdentifier(ActiveProcedures, 0);
             bool isManager = ActiveProcedures.Count < 1;
 
             return new Procedure(identifier, isManager);
         }
 
-        private long GetNewIdentifier(IList<IProcedure> activeProcedures)
+        private long GetNewIdentifier(IList<IProcedure> activeProcedures, long ident)
         {
-            long identifier = new Random().Next(1000, 9999);
+            long identifier = ident == 0 ? new Random().Next(1000, 9999) : ident;
 
-            while (activeProcedures.Select(proc => proc.Identifier == identifier).Any())
-                identifier += 10;
+            for (int i = 0; i < activeProcedures.Count; i++)
+            {
+                if(identifier == activeProcedures[i].Identifier)
+                {
+                    return GetNewIdentifier(activeProcedures, identifier + 10);
+                }
+
+            }
 
             return identifier;
+
+            /*while (activeProcedures.Select(proc => proc.Identifier == identifier).Any())
+                identifier += 10;
+
+            return identifier;*/
         }
 
         public void ExecuteRequest()
@@ -153,7 +167,8 @@ namespace Rules
 
         private IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
         {
-            return activeProcedures.First(proc => proc.Manager);
+
+           return activeProcedures.First();
         }
 
         public void InactivateProcedure()
