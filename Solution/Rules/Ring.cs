@@ -119,7 +119,49 @@ namespace Rules
 
         public void InactivateManager()
         {
-            throw new NotImplementedException();
+            Thread creator = InactivateManagerThread();
+            creator.Start();
+        }
+
+        private Thread InactivateManagerThread()
+        {
+            return new Thread(new ThreadStart(InactivateManagerStart));
+        }
+
+        private void InactivateManagerStart()
+        {
+            while (true)
+            {
+                try
+                {
+                    Thread.Sleep(INACTIVATE_MANAGER);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(string.Format("Erro ao inativar coordenador: {0}", ex.Message));
+                }
+
+                lock (SynchronizedLock)
+                {
+                    if (ActiveProcedures.Any())
+                    {
+                        IProcedure managerProcedure = RetrieveManager();
+                        if (managerProcedure != null)
+                            InactivateProcedure(managerProcedure);
+                    }
+                }
+            }
+        }
+
+        private IProcedure RetrieveManager()
+        {
+            return ActiveProcedures.First(proc => proc.Manager);
+        }
+
+        private void InactivateProcedure(IProcedure procedure)
+        {
+            ActiveProcedures.Remove(procedure);
+            Console.WriteLine(string.Format("Processo {0} inativado.", procedure.Identifier));
         }
 
         public void InactivateProcedure()
