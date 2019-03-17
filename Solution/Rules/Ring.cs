@@ -77,7 +77,44 @@ namespace Rules
 
         public void ExecuteRequest()
         {
-            throw new NotImplementedException();
+            Thread creator = ExecuteRequestThread();
+            creator.Start();
+        }
+
+        private Thread ExecuteRequestThread()
+        {
+            return new Thread(new ThreadStart(ExecuteRequestStart));
+        }
+
+        private void ExecuteRequestStart()
+        {
+            while (true)
+            {
+                try
+                {
+                    Thread.Sleep(REQUEST);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(string.Format("Erro ao executar requisição: {0}", ex.Message));
+                }
+
+                lock (SynchronizedLock)
+                {
+                    if (ActiveProcedures.Any())
+                    {
+                        IProcedure randomProcedure = GetRandomItem(ActiveProcedures);
+                        Console.WriteLine(string.Format("Processo {0} fez uma requisição.", randomProcedure.Identifier));
+                    }
+                }
+            }
+        }
+
+        private IProcedure GetRandomItem(IList<IProcedure> activeProcedures)
+        {
+            int index = new Random().Next(activeProcedures.Count);
+
+            return activeProcedures[index];
         }
 
         public void InactivateManager()
