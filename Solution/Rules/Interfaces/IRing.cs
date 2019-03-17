@@ -8,5 +8,11 @@ namespace Rules.Interfaces
 {
     public interface IRing
     {
+        Object Lock { get; }
+
+        void CreateProcedures();
+        void ExecuteRequest();
+        void InactivateManager();
+        void InactivateProcedure();
     }
 }
