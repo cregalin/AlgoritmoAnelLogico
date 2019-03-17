@@ -8,7 +8,7 @@ namespace Rules.Interfaces
 {
     public interface IRing
     {
-        Object Lock { get; }
+        Object SynchronizedLock { get; }
 
         void CreateProcedures();
         void ExecuteRequest();
