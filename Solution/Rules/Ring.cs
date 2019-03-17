@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Rules
@@ -23,14 +24,27 @@ namespace Rules
         private readonly long INACTIVATE_MANAGER = 100000;
         private readonly long INACTIVATE_PROCEDURE = 80000;
         #endregion Time control
-
-        public Ring()
-        {
-        }
-
+        
         public void CreateProcedures()
         {
-            throw new NotImplementedException();
+            Thread creator = CreateProceduresThread();
+            creator.Start();
+        }
+
+        private Thread CreateProceduresThread()
+        {
+            return new Thread(new ThreadStart(CreateProcedure));
+        }
+
+        private void CreateProcedure()
+        {
+            while (true)
+            {
+                lock(Lock)
+                {
+                    // Criar novos processos
+                }
+            }
         }
 
         public void ExecuteRequest()
