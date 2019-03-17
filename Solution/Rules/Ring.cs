@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Rules
 {
@@ -77,8 +75,8 @@ namespace Rules
 
         public void ExecuteRequest()
         {
-            Thread creator = ExecuteRequestThread();
-            creator.Start();
+            Thread executor = ExecuteRequestThread();
+            executor.Start();
         }
 
         private Thread ExecuteRequestThread()
@@ -119,8 +117,8 @@ namespace Rules
 
         public void InactivateManager()
         {
-            Thread creator = InactivateManagerThread();
-            creator.Start();
+            Thread inactivator = InactivateManagerThread();
+            inactivator.Start();
         }
 
         private Thread InactivateManagerThread()
@@ -145,7 +143,7 @@ namespace Rules
                 {
                     if (ActiveProcedures.Any())
                     {
-                        IProcedure managerProcedure = RetrieveManager();
+                        IProcedure managerProcedure = RetrieveManager(ActiveProcedures);
                         if (managerProcedure != null)
                             InactivateProcedure(managerProcedure);
                     }
@@ -153,20 +151,51 @@ namespace Rules
             }
         }
 
-        private IProcedure RetrieveManager()
+        private IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
         {
-            return ActiveProcedures.First(proc => proc.Manager);
+            return activeProcedures.First(proc => proc.Manager);
+        }
+
+        public void InactivateProcedure()
+        {
+            Thread inactivator = InactivateProcedureThread();
+            inactivator.Start();
+        }
+
+        private Thread InactivateProcedureThread()
+        {
+            return new Thread(new ThreadStart(InactivateProcedureStart));
+        }
+
+        private void InactivateProcedureStart()
+        {
+            while (true)
+            {
+                try
+                {
+                    Thread.Sleep(INACTIVATE_PROCEDURE);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(string.Format("Erro ao inativar processo: {0}", ex.Message));
+                }
+
+                lock (SynchronizedLock)
+                {
+                    if (ActiveProcedures.Any())
+                    {
+                        IProcedure randomProcedure = GetRandomItem(ActiveProcedures);
+                        if (randomProcedure != null)
+                            InactivateProcedure(randomProcedure);
+                    }
+                }
+            }
         }
 
         private void InactivateProcedure(IProcedure procedure)
         {
             ActiveProcedures.Remove(procedure);
             Console.WriteLine(string.Format("Processo {0} inativado.", procedure.Identifier));
-        }
-
-        public void InactivateProcedure()
-        {
-            throw new NotImplementedException();
         }
     }
 }
