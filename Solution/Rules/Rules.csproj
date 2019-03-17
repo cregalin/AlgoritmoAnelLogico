@@ -41,7 +41,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interfaces\IProcedure.cs" />
+    <Compile Include="Interfaces\IRing.cs" />
+    <Compile Include="Procedure.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Ring.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
