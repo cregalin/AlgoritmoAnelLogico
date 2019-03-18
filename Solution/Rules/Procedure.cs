@@ -12,6 +12,8 @@ namespace Rules
         public long Identifier { get; set; }
         public bool Manager { get; set; }
 
+        public readonly string SEPARATOR = new string('-', 70);
+
         public Procedure(long id) : this(id, false)
         {
         }
@@ -46,7 +48,7 @@ namespace Rules
             Console.WriteLine(string.Format("Requeisição do processo {0} recebida.", identifier));
             try
             {
-                // Faz algo com a requisição
+                // Faz algo com a requisição 
                 Console.WriteLine(string.Format("Requeisição do processo {0} tratada.", identifier));
                 return true;
             }
@@ -59,13 +61,17 @@ namespace Rules
 
         public void BeginElection(long identifier)
         {
+            Console.WriteLine(SEPARATOR);
             Console.WriteLine(string.Format("Eleição iniciada pelo processo {0}", identifier));
+            Console.WriteLine(SEPARATOR);
 
             IProcedure newManager = RetriveManagerBiggestIndentifier();
 
             UpdateManager(newManager);
 
+            Console.WriteLine(SEPARATOR);
             Console.WriteLine(string.Format("Eleição terminada, o processo {0} é o novo coordenador.", newManager.Identifier));
+            Console.WriteLine(SEPARATOR);
         }
 
         private IProcedure RetriveManagerBiggestIndentifier()

@@ -10,10 +10,10 @@ namespace Rules
     {
         #region Properties
         private readonly static IList<IProcedure> _activeProcedures = new List<IProcedure>();
-        public static IList<IProcedure> ActiveProcedures => _activeProcedures;
+        public static IList<IProcedure> ActiveProcedures { get { return _activeProcedures; } }
 
         private readonly object _internalLock = new Object();
-        public object SynchronizedLock => _internalLock;
+        public object SynchronizedLock { get { return _internalLock; } }
         #endregion Properties
 
         #region Time control
@@ -26,12 +26,12 @@ namespace Rules
         public void CreateProcedures()
         {
             Thread creator = CreateProceduresThread();
-             creator.Start();
+            creator.Start();
         }
 
         private Thread CreateProceduresThread()
         {
-             return new Thread(new ThreadStart(CreateProcedureStart));
+            return new Thread(new ThreadStart(CreateProcedureStart));
         }
 
         private void CreateProcedureStart()
@@ -40,7 +40,7 @@ namespace Rules
             {
                 lock (SynchronizedLock)
                 {
-                   IProcedure newProcedure = CreateProcedure();
+                    IProcedure newProcedure = CreateProcedure();
 
                     ActiveProcedures.Add(newProcedure);
 
@@ -70,21 +70,10 @@ namespace Rules
         {
             long identifier = ident == 0 ? new Random().Next(1000, 9999) : ident;
 
-            for (int i = 0; i < activeProcedures.Count; i++)
-            {
-                if(identifier == activeProcedures[i].Identifier)
-                {
-                    return GetNewIdentifier(activeProcedures, identifier + 10);
-                }
-
-            }
+            if (activeProcedures.Select(proc => proc.Identifier).Contains(identifier))
+                identifier = GetNewIdentifier(activeProcedures, identifier + 10);
 
             return identifier;
-
-            /*while (activeProcedures.Select(proc => proc.Identifier == identifier).Any())
-                identifier += 10;
-
-            return identifier;*/
         }
 
         public void ExecuteRequest()
@@ -117,6 +106,7 @@ namespace Rules
                     {
                         IProcedure randomProcedure = GetRandomItem(ActiveProcedures);
                         Console.WriteLine(string.Format("Processo {0} fez uma requisição.", randomProcedure.Identifier));
+                        randomProcedure.SendRequest();
                     }
                 }
             }
@@ -167,8 +157,14 @@ namespace Rules
 
         private IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
         {
-
-           return activeProcedures.First();
+            try
+            {
+                return activeProcedures.First(proc => proc.Manager == true);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public void InactivateProcedure()
