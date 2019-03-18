@@ -47,7 +47,6 @@ namespace Rules
             try
             {
                 // Faz algo com a requisição
-
                 Console.WriteLine(string.Format("Requeisição do processo {0} tratada.", identifier));
                 return true;
             }
