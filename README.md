@@ -19,3 +19,5 @@ A lógica é a seguinte:
 * dois processos não podem ter o mesmo ID
 * dois processos de eleição não podem acontecer simultaneamente
 
+### Membros
+Alan Felipe Jantz, Caroline Belli Regalin e Matheus Mahnke
