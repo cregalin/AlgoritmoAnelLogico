@@ -26,26 +26,21 @@ namespace Rules
 
         public bool SendRequest()
         {
-            bool requestResult = ProcessRequest(this.Identifier);
-
-            if (!requestResult)
-                this.BeginElection(this.Identifier);
-
-            return requestResult;
+            return ProcessRequest(this.Identifier);
         }
 
         private bool ProcessRequest(long identifier)
         {
-            foreach (IProcedure procedure in Ring.ActiveProcedures)
-                if (procedure.Manager)
-                    return procedure.ReceiveRequest(identifier);
+            IProcedure managerProcedure = Ring.RetrieveManager();
+            if (managerProcedure != null)
+                return managerProcedure.ReceiveRequest(identifier);
 
             return false;
         }
 
         public bool ReceiveRequest(long identifier)
         {
-            Console.WriteLine(string.Format("Requeisição do processo {0} recebida.", identifier));
+            Console.WriteLine(string.Format("Requeisição do processo {0} recebida pelo coordenador ({1}).", identifier, Ring.RetrieveManager().Identifier));
             try
             {
                 // Faz algo com a requisição 
@@ -59,14 +54,20 @@ namespace Rules
             }
         }
 
+        public void BeginElection()
+        {
+            BeginElection(this.Identifier);
+        }
+
         public void BeginElection(long identifier)
         {
             Console.WriteLine(SEPARATOR);
             Console.WriteLine(string.Format("Eleição iniciada pelo processo {0}", identifier));
             Console.WriteLine(SEPARATOR);
 
-            IProcedure newManager = RetriveManagerBiggestIndentifier();
+            Console.WriteLine(string.Format("{0} processos ativos", Ring.ActiveProcedures.Count));
 
+            IProcedure newManager = RetriveManagerBiggestIndentifier();
             UpdateManager(newManager);
 
             Console.WriteLine(SEPARATOR);

@@ -13,6 +13,7 @@ namespace Rules.Interfaces
 
         bool SendRequest();
         bool ReceiveRequest(long identifier);
+        void BeginElection();
         void BeginElection(long identifier);
         bool UpdateManager(IProcedure newManager);
     }

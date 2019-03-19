@@ -17,10 +17,10 @@ namespace Rules
         #endregion Properties
 
         #region Time control
-        private readonly int ADD = 30000;
-        private readonly int REQUEST = 25000;
-        private readonly int INACTIVATE_MANAGER = 100000;
-        private readonly int INACTIVATE_PROCEDURE = 80000;
+        private readonly int ADD = 3000;
+        private readonly int REQUEST = 2500;
+        private readonly int INACTIVATE_MANAGER = 10000;
+        private readonly int INACTIVATE_PROCEDURE = 8000;
         #endregion Time control
 
         public void CreateProcedures()
@@ -104,19 +104,35 @@ namespace Rules
                 {
                     if (ActiveProcedures.Any())
                     {
-                        IProcedure randomProcedure = GetRandomItem(ActiveProcedures);
-                        Console.WriteLine(string.Format("Processo {0} fez uma requisição.", randomProcedure.Identifier));
-                        randomProcedure.SendRequest();
+                        IProcedure procedure = GetRandomProcedure(ActiveProcedures);
+                        if (procedure != null)
+                        {
+                            Console.WriteLine(string.Format("Processo {0} fez uma requisição.", procedure.Identifier));
+                            bool recieved = procedure.SendRequest();
+
+                            if (!recieved)
+                            {
+                                Console.WriteLine(string.Format("Não foi obtida nenhuma resposta para a requisição."));
+                                procedure.BeginElection();
+                            }
+                        }
                     }
                 }
             }
         }
 
-        private IProcedure GetRandomItem(IList<IProcedure> activeProcedures)
+        private IProcedure GetRandomProcedure(IList<IProcedure> activeProcedures)
         {
             int index = new Random().Next(activeProcedures.Count);
 
-            return activeProcedures[index];
+            IProcedure randomProcedure = activeProcedures[index];
+
+            if (!randomProcedure.Manager)
+                return randomProcedure;
+            else if (activeProcedures.Count > 1)
+                return GetRandomProcedure(activeProcedures);
+            else
+                return null;
         }
 
         public void InactivateManager()
@@ -155,7 +171,12 @@ namespace Rules
             }
         }
 
-        private IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
+        public static IProcedure RetrieveManager()
+        {
+            return RetrieveManager(ActiveProcedures);
+        }
+
+        public static IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
         {
             try
             {
@@ -195,7 +216,7 @@ namespace Rules
                 {
                     if (ActiveProcedures.Any())
                     {
-                        IProcedure randomProcedure = GetRandomItem(ActiveProcedures);
+                        IProcedure randomProcedure = GetRandomProcedure(ActiveProcedures);
                         if (randomProcedure != null)
                             InactivateProcedure(randomProcedure);
                     }
