@@ -17,21 +17,16 @@ namespace Rules
         #endregion Properties
 
         #region Time control
-        private readonly int ADD = 3000;
-        private readonly int REQUEST = 2500;
-        private readonly int INACTIVATE_MANAGER = 10000;
-        private readonly int INACTIVATE_PROCEDURE = 8000;
+        private readonly int ADD = 30000;
+        private readonly int REQUEST = 25000;
+        private readonly int INACTIVATE_MANAGER = 100000;
+        private readonly int INACTIVATE_PROCEDURE = 80000;
         #endregion Time control
 
         public void CreateProcedures()
         {
-            Thread creator = CreateProceduresThread();
+            Thread creator = new Thread(new ThreadStart(CreateProcedureStart));
             creator.Start();
-        }
-
-        private Thread CreateProceduresThread()
-        {
-            return new Thread(new ThreadStart(CreateProcedureStart));
         }
 
         private void CreateProcedureStart()
@@ -78,13 +73,8 @@ namespace Rules
 
         public void ExecuteRequest()
         {
-            Thread executor = ExecuteRequestThread();
+            Thread executor = new Thread(new ThreadStart(ExecuteRequestStart));
             executor.Start();
-        }
-
-        private Thread ExecuteRequestThread()
-        {
-            return new Thread(new ThreadStart(ExecuteRequestStart));
         }
 
         private void ExecuteRequestStart()
@@ -137,15 +127,10 @@ namespace Rules
 
         public void InactivateManager()
         {
-            Thread inactivator = InactivateManagerThread();
+            Thread inactivator = new Thread(new ThreadStart(InactivateManagerStart));
             inactivator.Start();
         }
-
-        private Thread InactivateManagerThread()
-        {
-            return new Thread(new ThreadStart(InactivateManagerStart));
-        }
-
+        
         private void InactivateManagerStart()
         {
             while (true)
@@ -190,15 +175,10 @@ namespace Rules
 
         public void InactivateProcedure()
         {
-            Thread inactivator = InactivateProcedureThread();
+            Thread inactivator = new Thread(new ThreadStart(InactivateProcedureStart));
             inactivator.Start();
         }
-
-        private Thread InactivateProcedureThread()
-        {
-            return new Thread(new ThreadStart(InactivateProcedureStart));
-        }
-
+        
         private void InactivateProcedureStart()
         {
             while (true)
