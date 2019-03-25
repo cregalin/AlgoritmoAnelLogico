@@ -1,13 +1,22 @@
-﻿using Rules.Interfaces;
+﻿using Rules.Enums;
+using Rules.Interfaces;
+using Rules.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 
 namespace Rules
 {
     public class Ring : IRing
     {
+        private readonly ILog _log;
+        public Ring(ILog log)
+        {
+            _log = log;
+        }
+
         #region Properties
         private readonly static IList<IProcedure> _activeProcedures = new List<IProcedure>();
         public static IList<IProcedure> ActiveProcedures { get { return _activeProcedures; } }
@@ -17,197 +26,136 @@ namespace Rules
         #endregion Properties
 
         #region Time control
-        private readonly int ADD = 30000;
-        private readonly int REQUEST = 25000;
-        private readonly int INACTIVATE_MANAGER = 100000;
-        private readonly int INACTIVATE_PROCEDURE = 80000;
+        private const int ADD = 30000;
+        private const int REQUEST = 25000;
+        private const int INACTIVATE_MANAGER = 100000;
+        private const int INACTIVATE_PROCEDURE = 80000;
         #endregion Time control
 
-        public void CreateProcedures()
-        {
-            Thread creator = new Thread(new ThreadStart(CreateProcedureStart));
-            creator.Start();
-        }
+        /// <summary>
+        /// Cria um novo processo e adiciona na lista de processos com um intervalo de tempo de 30 segundos.
+        /// </summary>
+        public void CreateProcedures() =>
+            new Thread(new ThreadStart(CreateProcedureStart)).Start();
 
-        private void CreateProcedureStart()
-        {
-            while (true)
+        private void CreateProcedureStart() =>
+            startProcess(ADD, ProcessType.CreateProcedure, () =>
             {
-                lock (SynchronizedLock)
-                {
                     IProcedure newProcedure = CreateProcedure();
 
                     ActiveProcedures.Add(newProcedure);
 
-                    Console.WriteLine(string.Format("Processo {0} criado.", newProcedure.Identifier));
-                }
+                    _log.processoCriado(newProcedure.Identifier);
+            }, false);
 
-                try
+        /// <summary>
+        /// Envia uma requisição a um processo aleatório em um intervalo de tempo de 25 segundos,
+        /// se não for recebida inicia uma nova eleição.
+        /// </summary>
+        public void ExecuteRequest() =>
+            new Thread(new ThreadStart(ExecuteRequestStart)).Start();
+
+        private void ExecuteRequestStart() =>
+            startProcess(REQUEST, ProcessType.ExecuteRequest, () =>
+            {
+                if (ActiveProcedures.Any())
                 {
-                    Thread.Sleep(ADD);
+                    IProcedure procedure = ActiveProcedures.GetRandomProcedure();
+                    if (procedure != null)
+                    {
+                        _log.processoFezUmaRequisicao(procedure.Identifier);
+                        bool recieved = procedure.SendRequest();
+
+                        if (!recieved)
+                        {
+                            _log.naoFoiObtidaNenhumaRespostaParaARequisicao();
+                            procedure.BeginElection();
+                        }
+                    }
                 }
-                catch (Exception ex)
+            });
+
+        /// <summary>
+        /// Inativa o coordenador existente em um intervalo de 100 segundos
+        /// </summary>
+        public void InactivateManager() =>
+            new Thread(new ThreadStart(InactivateManagerStart)).Start();
+        private void InactivateManagerStart() =>
+            startProcess(INACTIVATE_MANAGER, ProcessType.InactivateManager, () =>
+            {
+                if (ActiveProcedures.Any())
                 {
-                    Console.WriteLine(string.Format("Erro ao criar novo processo: {0}", ex.Message));
+                    IProcedure managerProcedure = ActiveProcedures.RetrieveManager();
+                    if (managerProcedure != null)
+                        InactivateProcedure(managerProcedure);
                 }
+            });
+
+        /// <summary>
+        /// Inativa um processo aleatório existente em um intervalo de 80 segundos
+        /// </summary>
+        public void InactivateProcedure() =>
+            new Thread(new ThreadStart(InactivateProcedureStart)).Start();
+
+        private void InactivateProcedureStart() =>
+            startProcess(INACTIVATE_PROCEDURE, ProcessType.InactivateProcedure, () =>
+            {
+                if (ActiveProcedures.Any())
+                {
+                    IProcedure randomProcedure = ActiveProcedures.GetRandomProcedure();
+                    if (randomProcedure != null)
+                        InactivateProcedure(randomProcedure);
+                }
+            });
+
+        /// <summary>
+        /// Inativa o processo especificado da lista de processo
+        /// </summary>
+        private void InactivateProcedure(IProcedure procedure)
+        {
+            ActiveProcedures.Remove(procedure);
+            _log.processoInativado(procedure.Identifier);
+        }
+
+        /// <summary>
+        /// Inicia um processo com um intervalo de tempo especificado e sincronizado com o objeto SynchronizedLock
+        /// </summary>
+        private void startProcess(int ms, ProcessType processType, Action del, bool sleepFirst = true)
+        {
+            while (true)
+            {
+                if (sleepFirst)
+                    try
+                    {
+                        Thread.Sleep(ms);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.error(ex, processType);
+                    }
+
+                lock (SynchronizedLock)
+                {
+                    del.Invoke();
+                }
+                if (!sleepFirst)
+                    try
+                    {
+                        Thread.Sleep(ms);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.error(ex, processType);
+                    }
             }
         }
 
         private IProcedure CreateProcedure()
         {
-            long identifier = GetNewIdentifier(ActiveProcedures, 0);
+            long identifier = ActiveProcedures.GetNewIdentifier(0);
             bool isManager = ActiveProcedures.Count < 1;
 
-            return new Procedure(identifier, isManager);
-        }
-
-        private long GetNewIdentifier(IList<IProcedure> activeProcedures, long ident)
-        {
-            long identifier = ident == 0 ? new Random().Next(1000, 9999) : ident;
-
-            if (activeProcedures.Select(proc => proc.Identifier).Contains(identifier))
-                identifier = GetNewIdentifier(activeProcedures, identifier + 10);
-
-            return identifier;
-        }
-
-        public void ExecuteRequest()
-        {
-            Thread executor = new Thread(new ThreadStart(ExecuteRequestStart));
-            executor.Start();
-        }
-
-        private void ExecuteRequestStart()
-        {
-            while (true)
-            {
-                try
-                {
-                    Thread.Sleep(REQUEST);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(string.Format("Erro ao executar requisição: {0}", ex.Message));
-                }
-
-                lock (SynchronizedLock)
-                {
-                    if (ActiveProcedures.Any())
-                    {
-                        IProcedure procedure = GetRandomProcedure(ActiveProcedures);
-                        if (procedure != null)
-                        {
-                            Console.WriteLine(string.Format("Processo {0} fez uma requisição.", procedure.Identifier));
-                            bool recieved = procedure.SendRequest();
-
-                            if (!recieved)
-                            {
-                                Console.WriteLine(string.Format("Não foi obtida nenhuma resposta para a requisição."));
-                                procedure.BeginElection();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private IProcedure GetRandomProcedure(IList<IProcedure> activeProcedures)
-        {
-            int index = new Random().Next(activeProcedures.Count);
-
-            IProcedure randomProcedure = activeProcedures[index];
-
-            if (!randomProcedure.Manager)
-                return randomProcedure;
-            else if (activeProcedures.Count > 1)
-                return GetRandomProcedure(activeProcedures);
-            else
-                return null;
-        }
-
-        public void InactivateManager()
-        {
-            Thread inactivator = new Thread(new ThreadStart(InactivateManagerStart));
-            inactivator.Start();
-        }
-        
-        private void InactivateManagerStart()
-        {
-            while (true)
-            {
-                try
-                {
-                    Thread.Sleep(INACTIVATE_MANAGER);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(string.Format("Erro ao inativar coordenador: {0}", ex.Message));
-                }
-
-                lock (SynchronizedLock)
-                {
-                    if (ActiveProcedures.Any())
-                    {
-                        IProcedure managerProcedure = RetrieveManager(ActiveProcedures);
-                        if (managerProcedure != null)
-                            InactivateProcedure(managerProcedure);
-                    }
-                }
-            }
-        }
-
-        public static IProcedure RetrieveManager()
-        {
-            return RetrieveManager(ActiveProcedures);
-        }
-
-        public static IProcedure RetrieveManager(IList<IProcedure> activeProcedures)
-        {
-            try
-            {
-                return activeProcedures.First(proc => proc.Manager == true);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        public void InactivateProcedure()
-        {
-            Thread inactivator = new Thread(new ThreadStart(InactivateProcedureStart));
-            inactivator.Start();
-        }
-        
-        private void InactivateProcedureStart()
-        {
-            while (true)
-            {
-                try
-                {
-                    Thread.Sleep(INACTIVATE_PROCEDURE);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(string.Format("Erro ao inativar processo: {0}", ex.Message));
-                }
-
-                lock (SynchronizedLock)
-                {
-                    if (ActiveProcedures.Any())
-                    {
-                        IProcedure randomProcedure = GetRandomProcedure(ActiveProcedures);
-                        if (randomProcedure != null)
-                            InactivateProcedure(randomProcedure);
-                    }
-                }
-            }
-        }
-
-        private void InactivateProcedure(IProcedure procedure)
-        {
-            ActiveProcedures.Remove(procedure);
-            Console.WriteLine(string.Format("Processo {0} inativado.", procedure.Identifier));
+            return new Procedure(_log, identifier, isManager);
         }
     }
 }

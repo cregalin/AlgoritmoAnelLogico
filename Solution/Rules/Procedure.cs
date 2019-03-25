@@ -1,4 +1,5 @@
 ﻿using Rules.Interfaces;
+using Rules.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,16 +11,14 @@ namespace Rules
     public class Procedure : IProcedure
     {
         public long Identifier { get; set; }
+
         public bool Manager { get; set; }
 
-        public readonly string SEPARATOR = new string('-', 70);
+        private readonly ILog _log;
 
-        public Procedure(long id) : this(id, false)
+        public Procedure(ILog log, long id, bool manager)
         {
-        }
-
-        public Procedure(long id, bool manager)
-        {
+            _log = log;
             Identifier = id;
             Manager = manager;
         }
@@ -31,7 +30,7 @@ namespace Rules
 
         private bool ProcessRequest(long identifier)
         {
-            IProcedure managerProcedure = Ring.RetrieveManager();
+            IProcedure managerProcedure = Ring.ActiveProcedures.RetrieveManager();
             if (managerProcedure != null)
                 return managerProcedure.ReceiveRequest(identifier);
 
@@ -40,16 +39,16 @@ namespace Rules
 
         public bool ReceiveRequest(long identifier)
         {
-            Console.WriteLine(string.Format("Requeisição do processo {0} recebida pelo coordenador ({1}).", identifier, Ring.RetrieveManager().Identifier));
+            _log.requisicaoRecebida(identifier);
             try
             {
-                // Faz algo com a requisição 
-                Console.WriteLine(string.Format("Requeisição do processo {0} tratada.", identifier));
+                // Faz algo com a requisição
+                _log.requisicaoTratada(identifier);
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine(string.Format("Erro ao tratar requisição do processo {0}: {1}", identifier, ex.Message));
+                _log.erroAoTratarRequisicao(identifier, ex);
                 return false;
             }
         }
@@ -61,18 +60,14 @@ namespace Rules
 
         public void BeginElection(long identifier)
         {
-            Console.WriteLine(SEPARATOR);
-            Console.WriteLine(string.Format("Eleição iniciada pelo processo {0}", identifier));
-            Console.WriteLine(SEPARATOR);
+            _log.eleicaoIniciada(identifier);
 
-            Console.WriteLine(string.Format("{0} processos ativos", Ring.ActiveProcedures.Count));
+            _log.processosAtivos();
 
             IProcedure newManager = RetriveManagerBiggestIndentifier();
             UpdateManager(newManager);
 
-            Console.WriteLine(SEPARATOR);
-            Console.WriteLine(string.Format("Eleição terminada, o processo {0} é o novo coordenador.", newManager.Identifier));
-            Console.WriteLine(SEPARATOR);
+            _log.eleicaoTerminada(identifier);
         }
 
         private IProcedure RetriveManagerBiggestIndentifier()
@@ -80,31 +75,41 @@ namespace Rules
             return Ring.ActiveProcedures.OrderBy(proc => proc.Identifier).Last();
         }
 
+        /// <summary>
+        /// Defini o processo como coordenador
+        /// </summary>
         public bool UpdateManager(IProcedure newManager)
         {
             try
             {
-                newManager.Manager = true;
-                Console.WriteLine(string.Format("Processo {0} definido como coordenador.", newManager.Identifier));
 
-                SetProceduresAsManager(newManager.Identifier, false);
-                Console.WriteLine("Demais processos marcados como não-coordenadores.");
+                SetProceduresAsManager(newManager.Identifier);
+                _log.demaisProcessosComoNaoCoordenadores();
             }
             catch (Exception ex)
             {
-                newManager.Manager = false;
-                Console.WriteLine(string.Format("Erro ao atualizar coordenador: {0}", ex.Message));
+                _log.erroAoAtualizarOCoorenador(ex);
             }
 
             return newManager.Manager;
         }
 
-        private void SetProceduresAsManager(long managerIdentifier, bool isManager)
-        {
-            IList<IProcedure> procedures = Ring.ActiveProcedures.Where(proc => proc.Identifier != managerIdentifier && proc.Manager != isManager).ToList();
-
-            foreach (IProcedure procedure in procedures)
-                procedure.Manager = isManager;
-        }
+        private void SetProceduresAsManager(long managerIdentifier) =>
+            Ring.ActiveProcedures.
+            Where(proc =>
+            {
+                return proc.Manager == true &&
+                proc.Identifier == managerIdentifier;
+            }).ToList().
+                ForEach(proc =>
+                {
+                    if (proc.Identifier == managerIdentifier)
+                    {
+                        _log.novoCoordenador(managerIdentifier);
+                        proc.Manager = true;
+                    }
+                    else
+                        proc.Manager = false;
+                });
     }
 }
