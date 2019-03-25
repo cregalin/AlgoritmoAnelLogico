@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rules.Enums;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -44,5 +45,7 @@ namespace Rules.Interfaces
         void erroAoInativarProcesso(Exception ex);
 
         void processoInativado(long id);
+
+        void error(Exception ex, ProcessType processType);
     }
 }

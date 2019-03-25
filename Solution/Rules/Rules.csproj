@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enums\ProcessType.cs" />
     <Compile Include="Interfaces\ILog.cs" />
     <Compile Include="Interfaces\IProcedure.cs" />
     <Compile Include="Interfaces\IRing.cs" />

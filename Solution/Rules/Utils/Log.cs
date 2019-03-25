@@ -1,4 +1,5 @@
-﻿using Rules.Interfaces;
+﻿using Rules.Enums;
+using Rules.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,8 +19,8 @@ namespace Rules.Utils
         private void writeLine(string value)
         {
             Console.WriteLine();
-            Console.WriteLine(_separator + $"{intervalo.ElapsedMilliseconds.ToString()}ms - {Timer.ElapsedMilliseconds.ToString()}ms");
             Console.WriteLine(value);
+            Console.WriteLine(_separator + $"{intervalo.ElapsedMilliseconds.ToString()}ms - {Timer.ElapsedMilliseconds.ToString()}ms");
             resetWatch();
         }
 
@@ -81,5 +82,7 @@ namespace Rules.Utils
 
         public void processoInativado(long id) =>
             writeLine($"Processo {id} inativado.");
+        public void error(Exception ex, ProcessType processType) =>
+            writeLine($"Erro ao {processType.Value}: {ex.Message}");
     }
 }
