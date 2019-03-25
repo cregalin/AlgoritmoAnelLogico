@@ -82,6 +82,8 @@ namespace Rules.Utils
 
         public void processoInativado(long id) =>
             writeLine($"Processo {id} inativado.");
+        public void coordenadorInativado(long id) =>
+            writeLine($"Coordenador {id} inativado.");
         public void error(Exception ex, ProcessType processType) =>
             writeLine($"Erro ao {processType.Value}: {ex.Message}");
     }

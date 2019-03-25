@@ -76,7 +76,7 @@ namespace Rules
         }
 
         /// <summary>
-        /// Defini o processo como coordenador
+        /// Define o processo como coordenador
         /// </summary>
         public bool UpdateManager(IProcedure newManager)
         {
