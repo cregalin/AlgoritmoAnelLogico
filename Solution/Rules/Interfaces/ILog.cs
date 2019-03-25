@@ -47,5 +47,7 @@ namespace Rules.Interfaces
         void processoInativado(long id);
 
         void error(Exception ex, ProcessType processType);
+
+        void coordenadorInativado(long id);
     }
 }

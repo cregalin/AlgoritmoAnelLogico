@@ -41,11 +41,11 @@ namespace Rules
         private void CreateProcedureStart() =>
             startProcess(ADD, ProcessType.CreateProcedure, () =>
             {
-                    IProcedure newProcedure = CreateProcedure();
+                IProcedure newProcedure = CreateProcedure();
 
-                    ActiveProcedures.Add(newProcedure);
+                ActiveProcedures.Add(newProcedure);
 
-                    _log.processoCriado(newProcedure.Identifier);
+                _log.processoCriado(newProcedure.Identifier);
             }, false);
 
         /// <summary>
@@ -114,7 +114,10 @@ namespace Rules
         private void InactivateProcedure(IProcedure procedure)
         {
             ActiveProcedures.Remove(procedure);
-            _log.processoInativado(procedure.Identifier);
+            if (procedure.Manager)
+                _log.coordenadorInativado(procedure.Identifier);
+            else
+                _log.processoInativado(procedure.Identifier);
         }
 
         /// <summary>
@@ -124,32 +127,27 @@ namespace Rules
         {
             while (true)
             {
-                if (sleepFirst)
-                    try
-                    {
-                        Thread.Sleep(ms);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.error(ex, processType);
-                    }
-
-                lock (SynchronizedLock)
-                {
-                    del.Invoke();
-                }
                 if (!sleepFirst)
-                    try
-                    {
-                        Thread.Sleep(ms);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.error(ex, processType);
-                    }
+                    lock (SynchronizedLock)
+                        del.Invoke();
+                try
+                {
+                    Thread.Sleep(ms);
+                }
+                catch (Exception ex)
+                {
+                    _log.error(ex, processType);
+                }
+
+                if (sleepFirst)
+                    lock (SynchronizedLock)
+                        del.Invoke();
             }
         }
 
+        /// <summary>
+        /// Cria um novo processo com Id unico e como coordenador se não existir nenhum processo
+        /// </summary>
         private IProcedure CreateProcedure()
         {
             long identifier = ActiveProcedures.GetNewIdentifier(0);
