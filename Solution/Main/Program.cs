@@ -1,5 +1,6 @@
 ﻿using Rules;
 using Rules.Interfaces;
+using Rules.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,9 @@ namespace Main
     {
         public static void Main(string[] args)
         {
-            IRing anelLogico = new Ring();
+            var log = new Log();
+            log.Timer.Start();
+            IRing anelLogico = new Ring(log);
 
             anelLogico.CreateProcedures();
             anelLogico.ExecuteRequest();
